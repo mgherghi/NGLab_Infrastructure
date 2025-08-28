@@ -16,4 +16,4 @@ RUN set -eux; \
     chmod +x /usr/local/bin/docker-entrypoint-central.sh
 
 VOLUME ["/var/lib/ovn", "/var/log/ovn"]
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-central.sh"]
