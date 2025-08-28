@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#
+# Wrapper for ovs-vsctl inside ovn-host container
+#
+
+set -euo pipefail
+
+CONTAINER_NAME="ovn-host"
+EXECUTABLE="/usr/bin/ovs-vsctl"
+
+if ! docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}\$"; then
+    echo "Error: container '${CONTAINER_NAME}' is not running" >&2
+    exit 1
+fi
+
+# Drop -t for non-interactive usage (to avoid "not a TTY")
+docker exec -i "${CONTAINER_NAME}" "${EXECUTABLE}" "$@"
