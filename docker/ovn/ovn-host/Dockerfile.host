@@ -1,15 +1,21 @@
 FROM debian:13-slim
 ARG SCRIPT_URL
-
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      ovn-host openvswitch-switch curl iproute2 ca-certificates tini procps \
-    && rm -rf /var/lib/apt/lists/*
+
+# OVS user space + OVN host controller + helpers
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      openvswitch-switch openvswitch-common \
+      ovn-host ovn-common \
+      iproute2 iputils-ping netcat-openbsd ca-certificates \
+      gettext-base procps && \
+    rm -rf /var/lib/apt/lists/*
+
 
 # Fetch entrypoint with checksum verification
 RUN set -eux; \
     curl -fsSL "$SCRIPT_URL" -o /usr/local/bin/docker-entrypoint-host.sh; \ 
     chmod +x /usr/local/bin/docker-entrypoint-host.sh
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["/usr/local/bin/docker-entrypoint-host.sh"]
+VOLUME ["/etc/openvswitch", "/var/log/openvswitch", "/var/lib/openvswitch"]
+ENTRYPOINT ["/entrypoint.sh"]
