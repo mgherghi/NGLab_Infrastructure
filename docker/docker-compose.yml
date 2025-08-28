@@ -1,0 +1,123 @@
+#               YOU MUST RUN THIS LIKE
+#!/usr/bin/env bash
+#set -euo pipefail
+#HOSTNAME="$(hostname -s)" exec docker compose up -d "$@"
+#
+#  USE AS NEEDED AND COMMENT OUT WHAT YOU DONT NEED
+###############################################################################
+
+version: "3.9"
+services:
+  linstor-controller:
+    build:
+      context: https://github.com/mgherghi/NGLab_Infrastructure.git
+      dockerfile: docker/linstor/linstor-controller/Dockerfile.controller
+      args:
+        SCRIPT_URL: "https://raw.githubusercontent.com/mgherghi/NGLab_Infrastructure/refs/heads/main/docker/linstor/linstor-controller/docker-entrypoint-linstor-controller.sh"
+        LINBIT_REPO: "https://raw.githubusercontent.com/mgherghi/CalPoly_Infrastructure/refs/heads/main/Infrastructure/linstor.sources"
+        LINBIT_KEY: "https://raw.githubusercontent.com/mgherghi/CalPoly_Infrastructure/refs/heads/main/Infrastructure/linbit.asc"
+    image: new-linstor-controller
+    container_name: linstor-controller
+    hostname: "${HOSTNAME}-linstor-controller"
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - /dev:/dev
+      - /run/udev:/run/udev:ro     # let udev events/blkid work
+      - /lib/modules:/lib/modules:ro  # if your app needs to talk to kernel modules
+      - /sys:/sys
+    environment:
+      JAVA_TOOL_OPTIONS=-Xms512m -Xmx2048m
+    healthcheck:
+      test: ["CMD-SHELL", "linstor controller list >/dev/null 2>&1 || exit 0"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+
+
+  linstor-satellite:
+    # Build the satellite image straight from source
+    build:
+      context: https://github.com/mgherghi/NGLab_Infrastructure.git
+      dockerfile: docker/linstor/linstor-satellite/Dockerfile.satellite
+      args:
+        SCRIPT_URL: "https://raw.githubusercontent.com/mgherghi/NGLab_Infrastructure/refs/heads/main/docker/linstor/linstor-satellite/docker-entrypoint-linstor-satellite.sh"
+        LINBIT_REPO: "https://raw.githubusercontent.com/mgherghi/CalPoly_Infrastructure/refs/heads/main/Infrastructure/linstor.sources"
+        LINBIT_KEY: "https://raw.githubusercontent.com/mgherghi/CalPoly_Infrastructure/refs/heads/main/Infrastructure/linbit.asc"
+    image: new-linstor-satellite
+    container_name: linstor-satellite
+    hostname: "${HOSTNAME}-linstor-satellite"
+    network_mode: host
+    privileged: true  # simplest path to host DRBD + devices
+    restart: unless-stopped
+    environment:
+      LINSTOR_CONTROLLERS: "4.0.1.7:3370"
+    volumes:
+      - /dev:/dev
+      - /run/udev:/run/udev:ro     # let udev events/blkid work
+      - /lib/modules:/lib/modules:ro  # if your app needs to talk to kernel modules
+      - /etc/drbd:/etc/drbd
+      - /var/lib/drbd:/var/lib/drbd
+      - /sys:/sys
+    cap_add:
+      - SYS_MODULE     # the container cannot load new modules if the host doesn't have them
+      - SYS_ADMIN
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD-SHELL", "linstor node list >/dev/null 2>&1 || exit 0"]
+      interval: 20s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+
+  ovn-central:
+    build:
+      context: https://github.com/mgherghi/NGLab_Infrastructure.git
+      dockerfile: docker/ovn/ovn-central/Dockerfile.central
+      args:
+        SCRIPT_URL: "https://raw.githubusercontent.com/mgherghi/NGLab_Infrastructure/refs/heads/main/docker/ovn/ovn-central/docker-entrypoint-central.sh"
+    image: new-ovn-central
+    container_name: ovn-central
+    hostname: "${HOSTNAME}-ovn-central"
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      NODE_IP: "${NODE_IP}"
+      IS_BOOTSTRAP: "${IS_BOOTSTRAP}"
+    volumes:
+      - ./data/ovn-central:/var/lib/ovn
+    healthcheck:
+      test: ["CMD-SHELL", "ss -lnt | grep -q ':6641\\|:6642'"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  ovn-host:
+    build:
+      context: https://github.com/mgherghi/NGLab_Infrastructure.git
+      dockerfile: docker/ovn/ovn-host/Dockerfile.host
+      args:
+        SCRIPT_URL: "https://raw.githubusercontent.com/mgherghi/NGLab_Infrastructure/refs/heads/main/docker/ovn/ovn-host/docker-entrypoint-host.sh"
+    container_name: ovn-host
+    image: new-ovn-host
+    hostname: "${HOSTNAME}-ovn-host"
+    restart: unless-stopped
+    network_mode: host
+    privileged: true               # needed to access kernel datapath
+    volumes:
+      - /lib/modules:/lib/modules:ro
+      - ./data/openvswitch/etc:/etc/openvswitch
+      - ./data/openvswitch/lib:/var/lib/openvswitch
+      - /var/run/ovn:/var/run/ovn           # optional: share for tooling
+    environment:
+      SERVER_1: "tcp:4.0.0.7:6642,tcp:4.0.0.8:6642,tcp:4.0.0.9:6642"
+      SERVER_1: "geneve"
+      SERVER_1: "auto"
+      LOCAL_IP: ""
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -x ovn-controller >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
