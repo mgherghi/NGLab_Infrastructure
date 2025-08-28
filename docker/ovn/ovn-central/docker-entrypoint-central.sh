@@ -5,7 +5,7 @@ LOG_DIR=/var/log/ovn
 
 case "$(hostname -s)" in
   r730xd-1)
-    cat > /etc/default/ovn-central <<'EOF'
+    cat > /etc/default/ovn-central <<EOF
 OVN_CTL_OPTS=" \
     --db-nb-addr=${LOCAL_IP} \
     --db-nb-create-insecure-remote=yes \
@@ -20,7 +20,7 @@ EOF
     ;;
 
   r730xd-2|r730xd-3)
-    cat > /etc/default/ovn-central <<'EOF'
+    cat > /etc/default/ovn-central <<EOF
 OVN_CTL_OPTS=" \
     --db-nb-addr=${LOCAL_IP} \
     --db-nb-cluster-remote-addr=${SERVER_1} \
