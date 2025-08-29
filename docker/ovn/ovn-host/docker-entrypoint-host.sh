@@ -33,21 +33,30 @@ ovs-vsctl --retry -- set Open_vSwitch . external-ids:ovn-encap-type="${ENCAP_TYP
 ovs-vsctl --retry -- set Open_vSwitch . external-ids:ovn-encap-ip="${ENCAP_IP}"
 ovs-vsctl --retry -- set Open_vSwitch . other_config:tc-policy=hw-offload
 ovs-vsctl --retry -- set Open_vSwitch . other_config:hw-offload=true
-   
+
+
+# Optional: create bridge & ports only on host "gigabyte"
+if [ "$(hostname -s)" = "gigabyte" ]; then
+  # Create the bridge
+  ovs-vsctl --may-exist add-br mlnx_sriov
+
+  # Add the bonded VF port with VLAN trunks (correct syntax, no brackets)
+  ovs-vsctl --may-exist add-port mlnx_sriov mlnx-vf_bond trunks=10,20,30,40,50,60,70,80,90,100
+
+  # Add ten VF ports, tagging them 10,20,...,100
+  for i in $(seq 0 9); do
+    tag=$(( (i + 1) * 10 ))
+    ovs-vsctl --may-exist add-port mlnx_sriov "enp65s0f0r${i}" tag="${tag}"
+  done
+fi
+
 # Start ovn-controller (uses /var/run/ovn/ by default)
 "$OVN_CTL" --no-monitor start_controller
 
 
 # Keep in foreground, stop cleanly on signal
-trap 'echo "Stopping..."; "$OVN_CTL" stop_controller; ovs-ctl stop; exit 0' TERM INT
+trap 'echo "Stopping..."; "$OVN_CTL" stop_controller;  "$OVS_CTL" stop; exit 0' TERM INT
 
-if [ "$(hostname -s)" = "gigabyte" ]; then
-    ovs-vsctl add-br mlnx_sriov
-    ovs-vsctl add-port mlnx_sriov mlnx-vf_bond trunks=[10,20,30,40,50,60,70,80,90,100]
-    for i in $(seq 0 9); do
-       ovs-vsctl add-port mlnx_sriov enp65s0f0r"$i" tag=$((i+1))0
-    done
-fi
 
 touch /var/log/openvswitch/ovs-vswitchd.log /var/log/openvswitch/ovsdb-server.log
 tail -F /var/log/openvswitch/*.log
