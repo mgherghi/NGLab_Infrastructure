@@ -33,7 +33,13 @@ ovs-vsctl --retry -- set Open_vSwitch . external-ids:ovn-encap-type="${ENCAP_TYP
 ovs-vsctl --retry -- set Open_vSwitch . external-ids:ovn-encap-ip="${ENCAP_IP}"
 ovs-vsctl --retry -- set Open_vSwitch . other_config:tc-policy=hw-offload
 ovs-vsctl --retry -- set Open_vSwitch . other_config:hw-offload=true
+   
+# Start ovn-controller (uses /var/run/ovn/ by default)
+"$OVN_CTL" --no-monitor start_controller
 
+
+# Keep in foreground, stop cleanly on signal
+trap 'echo "Stopping..."; "$OVN_CTL" stop_controller; ovs-ctl stop; exit 0' TERM INT
 
 if [ "$(hostname -s)" = "gigabyte" ]; then
     ovs-vsctl add-br mlnx_sriov
@@ -42,12 +48,6 @@ if [ "$(hostname -s)" = "gigabyte" ]; then
        ovs-vsctl add-port mlnx_sriov enp65s0f0r"$i" tag=$((i+1))0
     done
 fi
-   
 
-# Start ovn-controller (uses /var/run/ovn/ by default)
-"$OVN_CTL" --no-monitor start_controller
-
-# Keep in foreground, stop cleanly on signal
-trap 'echo "Stopping..."; ovn-ctl stop_controller; ovs-ctl stop; exit 0' TERM INT
 touch /var/log/openvswitch/ovs-vswitchd.log /var/log/openvswitch/ovsdb-server.log
 tail -F /var/log/openvswitch/*.log
