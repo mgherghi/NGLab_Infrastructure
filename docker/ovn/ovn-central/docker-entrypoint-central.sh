@@ -48,6 +48,6 @@ fi
 "$OVN_CTL" --no-monitor ${OVN_CTL_OPTS} start_northd
 
 # Keep foreground
-trap 'echo "Stopping..."; ovn-ctl stop_northd; ovn-ctl stop_sb_ovsdb; ovn-ctl stop_nb_ovsdb; exit 0' TERM INT
+trap 'echo "Stopping..."; "$OVN_CTL" stop_northd; "$OVN_CTL" stop_sb_ovsdb; "$OVN_CTL" stop_nb_ovsdb; exit 0' TERM INT
 touch /var/log/ovn/ovn-northd.log /var/log/ovn/ovn-nb.log /var/log/ovn/ovn-sb.log
 tail -F /var/log/ovn/*.log
