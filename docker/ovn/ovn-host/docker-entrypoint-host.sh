@@ -43,7 +43,7 @@ fi
    
 
 # Start ovn-controller (uses /var/run/ovn/ by default)
-ovn-ctl --no-monitor start_controller
+#ovn-ctl --no-monitor start_controller
 
 # Keep in foreground, stop cleanly on signal
 trap 'echo "Stopping..."; ovn-ctl stop_controller; ovs-ctl stop; exit 0' TERM INT
