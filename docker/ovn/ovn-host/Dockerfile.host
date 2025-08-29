@@ -7,7 +7,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       openvswitch-switch openvswitch-common \
       ovn-host ovn-common \
-      iproute2 iputils-ping netcat-openbsd ca-certificates \
+      iproute2 curl iputils-ping netcat-openbsd ca-certificates \
       gettext-base procps && \
     rm -rf /var/lib/apt/lists/*
 
