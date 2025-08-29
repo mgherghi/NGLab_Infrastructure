@@ -7,7 +7,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ovn-central ovn-common openvswitch-common \
-      iproute2 ca-certificates gettext-base procps && \
+      iproute2 ca-certificates curl gettext-base procps && \
     rm -rf /var/lib/apt/lists/*
 
 # Fetch entrypoint with checksum verification
