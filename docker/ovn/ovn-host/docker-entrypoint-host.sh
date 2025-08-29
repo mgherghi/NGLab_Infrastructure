@@ -1,5 +1,7 @@
 #!/bin/sh
 set -eu
+OVS_CTL=/usr/share/openvswitch/scripts/ovs-ctl
+OVN_CTL=/usr/share/ovn/scripts/ovn-ctl
 
 # Required env:
 : "${SB_REMOTES:?e.g. tcp:4.0.0.7:6642,tcp:4.0.0.8:6642,tcp:4.0.0.9:6642}"
@@ -16,7 +18,7 @@ if [ ! -f /etc/openvswitch/conf.db ]; then
 fi
 
 # Start OVS user-space daemons
-#ovs-ctl --no-mlockall --system-id=random start
+"$OVS_CTL" --no-mlockall --system-id=random start
 
 # Wait until ovsdb is ready
 i=0
@@ -43,7 +45,7 @@ fi
    
 
 # Start ovn-controller (uses /var/run/ovn/ by default)
-ovn-ctl --no-monitor start_controller
+"$OVN_CTL" --no-monitor start_controller
 
 # Keep in foreground, stop cleanly on signal
 trap 'echo "Stopping..."; ovn-ctl stop_controller; ovs-ctl stop; exit 0' TERM INT
