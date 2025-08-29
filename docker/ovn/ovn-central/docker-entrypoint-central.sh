@@ -1,5 +1,6 @@
 #!/bin/sh
 set -eu
+OVN_CTL=/usr/share/ovn/scripts/ovn-ctl
 
 # Required env
 : "${LOCAL_IP:?local IP for this node}"
@@ -35,16 +36,16 @@ fi
 
 # First boot: create NB/SB DBs if missing (idempotent)
 if [ ! -f /var/lib/ovn/ovnnb_db.db ]; then
-  ovn-ctl --no-monitor ${OVN_CTL_OPTS} run_nb_ovsdb && ovn-ctl stop_nb_ovsdb
+  "$OVN_CTL" --no-monitor ${OVN_CTL_OPTS} run_nb_ovsdb && ovn-ctl stop_nb_ovsdb
 fi
 if [ ! -f /var/lib/ovn/ovnsb_db.db ]; then
-  ovn-ctl --no-monitor ${OVN_CTL_OPTS} run_sb_ovsdb && ovn-ctl stop_sb_ovsdb
+  "$OVN_CTL" --no-monitor ${OVN_CTL_OPTS} run_sb_ovsdb && ovn-ctl stop_sb_ovsdb
 fi
 
 # Start services
-ovn-ctl --no-monitor ${OVN_CTL_OPTS} start_nb_ovsdb
-ovn-ctl --no-monitor ${OVN_CTL_OPTS} start_sb_ovsdb
-ovn-ctl --no-monitor ${OVN_CTL_OPTS} start_northd
+"$OVN_CTL" --no-monitor ${OVN_CTL_OPTS} start_nb_ovsdb
+"$OVN_CTL" --no-monitor ${OVN_CTL_OPTS} start_sb_ovsdb
+"$OVN_CTL" --no-monitor ${OVN_CTL_OPTS} start_northd
 
 # Keep foreground
 trap 'echo "Stopping..."; ovn-ctl stop_northd; ovn-ctl stop_sb_ovsdb; ovn-ctl stop_nb_ovsdb; exit 0' TERM INT
