@@ -18,4 +18,4 @@ RUN set -eux; \
     chmod +x /usr/local/bin/docker-entrypoint-host.sh
 
 VOLUME ["/etc/openvswitch", "/var/log/openvswitch", "/var/lib/openvswitch"]
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint-host.sh"]
